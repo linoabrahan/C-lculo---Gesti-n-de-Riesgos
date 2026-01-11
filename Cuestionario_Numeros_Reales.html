@@ -1,0 +1,160 @@
+
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Cuestionario Interactivo</title>
+<style>
+  :root{
+    --bg:#0f172a; --card:#ffffff;
+    --accent:#6a11cb; --accent2:#2575fc;
+    --text:#0f172a; --muted:#64748b;
+    --ok:#16a34a; --err:#dc2626;
+    --optBorder:#e2e8f0; --optHover:#f5f5f5; --optBg:#fafafa;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;
+    background:linear-gradient(180deg,var(--bg),#1e293b);
+    font-family:Arial,system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans",sans-serif;
+    color:#0b1220;
+  }
+  .container{max-width:900px;margin:40px auto;padding:0 18px}
+  .card{
+    background:var(--card); border-radius:14px;
+    box-shadow:0 6px 20px rgba(0,0,0,.15);
+    padding:22px; margin-top:20px
+  }
+  .meta{
+    display:flex; justify-content:space-between; align-items:center;
+    margin-bottom:16px; color:var(--muted); font-size:14px
+  }
+  .badge{
+    display:inline-block; margin-left:8px; padding:6px 10px;
+    border-radius:999px; font-size:12px; color:#fff; background:var(--accent2)
+  }
+  .question{
+    font-size:22px; font-weight:800; color:var(--text);
+    margin:12px 0 18px; line-height:1.5;
+  }
+  .options{display:flex; flex-direction:column; gap:16px}
+  label.option{
+    display:grid; grid-template-columns:24px 1fr; gap:14px; align-items:start;
+    border:1px solid var(--optBorder); border-radius:12px;
+    padding:16px; background:var(--optBg); cursor:pointer;
+    transition:border-color .15s ease, background .15s ease;
+  }
+  label.option:hover{border-color:#cbd5e1;background:var(--optHover)}
+  label.option span{line-height:1.75}
+  .tip{
+    margin-top:16px; padding:12px 14px; border-left:4px solid var(--accent);
+    background:#f0f7ff; color:#0b1220; border-radius:8px;
+  }
+  .controls{display:flex; gap:10px; justify-content:space-between; margin-top:22px}
+  button{border:0; border-radius:10px; padding:12px 16px; font-weight:800; cursor:pointer}
+  .secondary{background:#e2e8f0}
+  .primary{background:linear-gradient(180deg,var(--accent),var(--accent2)); color:#fff}
+  .ghost{background:transparent; border:2px solid #e2e8f0}
+  .result{margin-top:18px; font-weight:900}
+  .footer{color:#cbd5e1; text-align:center; margin:30px 0 60px}
+  .correct{border-color:#16a34a;background:#f0fff4}
+  .wrong{border-color:#dc2626;background:#fff5f5}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="card" id="quiz">
+    <div class="meta">
+      <div id="progress">Pregunta 1 de 10</div>
+      <div>Tiempo sugerido: 10–15 min <span class="badge" id="scoreBadge">0 aciertos</span></div>
+    </div>
+    <div class="question" id="qtext">…</div>
+    <div class="options" id="options"></div>
+    <div class="tip" id="tip" hidden>Usa la pista cuando lo necesites.</div>
+    <div class="controls">
+      <div><button class="ghost" id="btnTip">Pista</button></div>
+      <div>
+        <button class="secondary" id="btnPrev">Anterior</button>
+        <button class="primary" id="btnNext">Siguiente</button>
+        <button class="primary" id="btnFinish" hidden>Finalizar</button>
+      </div>
+    </div>
+    <div class="result" id="result" hidden></div>
+  </div>
+  <div class="footer">© Cálculo – Gestión de Riesgos | Moodle</div>
+</div>
+
+<script>
+const quizData = [
+  {q:"¿Cuál de los siguientes números es un número irracional?",options:["49","0.25","3","π"],correctIndex:3,tip:"Los irracionales no pueden expresarse como fracción y sus decimales son infinitos no periódicos."},
+  {q:"La expresión a+(b+c)=(a+b)+c es un ejemplo de la propiedad:",options:["Distributiva","Elemento neutro","Conmutativa","Asociativa"],correctIndex:3,tip:"Cambian los paréntesis, no el orden de los términos."},
+  {q:"¿Cuál es la representación fraccionaria del número decimal periódico 0.(5)?",options:["5/9","99/5","90/5","10/5"],correctIndex:0,tip:"Para periódico puro de un dígito: 0.(d) = d/9."},
+  {q:"Según el material, el conjunto de los números enteros (Z) es cerrado respecto a las operaciones de:",options:["Suma, resta y multiplicación","Suma y multiplicación solamente","Suma y resta solamente","Suma, resta, multiplicación y división"],correctIndex:0,tip:"La división puede dar resultado fuera de Z (por ejemplo, 1/2)."},
+  {q:"Un número primo es un entero positivo p>1 que cumple la siguiente condición:",options:["Es mayor que 1 y tiene más de dos factores.","Es cualquier número impar.","Sus únicos factores son él mismo y el 1.","No se puede dividir por 2."],correctIndex:2,tip:"Ejemplos: 2, 3, 5, 7, 11…"},
+  {q:"Al simplificar la expresión 20+10÷2−3×4, ¿cuál es el resultado correcto?",options:["13","2","8","12"],correctIndex:0,tip:"Primero multiplicaciones/divisiones; luego sumas y restas."},
+  {q:"¿Qué axioma justifica la igualdad 5×1=5?",options:["Existencia del elemento inverso multiplicativo","Propiedad conmutativa de la multiplicación","Propiedad del elemento absorbente","Existencia del elemento neutro multiplicativo"],correctIndex:3,tip:"Multiplicar por 1 deja el número igual."},
+  {q:"El conjunto de números de la forma p/q, donde q≠0 y p,q∈Z, se denomina:",options:["Números Irracionales (Q')","Números Naturales (N)","Números Racionales (Q)","Números Enteros (Z)"],correctIndex:2,tip:"Todo número expresable como fracción de enteros es racional."},
+  {q:"¿Cuál es la representación fraccionaria del número decimal periódico mixto 4.31111…?",options:["194/45","90/(431−4)","900/(431−1)","99/431"],correctIndex:0,tip:"Para mixto: 10^{d+r}x − 10^d x y resta los bloques enteros/no periódicos."},
+  {q:"La expresión algebraica para un número impar es (n∈Z):",options:["3n","2n+1","n+2","n+1"],correctIndex:1,tip:"2n es par; sumarle 1 lo vuelve impar."}
+];
+
+let idx=0,score=0;
+const answers=new Array(quizData.length).fill(null);
+const qtext=document.getElementById('qtext');
+const optionsEl=document.getElementById('options');
+const progressEl=document.getElementById('progress');
+const tipEl=document.getElementById('tip');
+const btnTip=document.getElementById('btnTip');
+const btnPrev=document.getElementById('btnPrev');
+const btnNext=document.getElementById('btnNext');
+const btnFinish=document.getElementById('btnFinish');
+const resultEl=document.getElementById('result');
+const scoreBadge=document.getElementById('scoreBadge');
+
+function render(){
+  const q=quizData[idx];
+  qtext.textContent=q.q;
+  progressEl.textContent=`Pregunta ${idx+1} de ${quizData.length}`;
+  tipEl.hidden=true; tipEl.textContent=q.tip;
+  btnPrev.disabled=idx===0;
+  btnNext.hidden=idx===quizData.length-1;
+  btnFinish.hidden=!(idx===quizData.length-1);
+  optionsEl.innerHTML='';
+  q.options.forEach((text,i)=>{
+    const label=document.createElement('label');
+    label.className='option';
+    const input=document.createElement('input');
+    input.type='radio'; input.name=`q-${idx}`;
+    input.checked=(answers[idx]===i);
+    input.addEventListener('change',()=>select(i));
+    const span=document.createElement('span');
+    span.textContent=text;
+    label.appendChild(input); label.appendChild(span);
+    optionsEl.appendChild(label);
+  });
+}
+function select(i){
+  const was=answers[idx];
+  answers[idx]=i;
+  if(was!==quizData[idx].correctIndex && i===quizData[idx].correctIndex){score++;}
+  else if(was===quizData[idx].correctIndex && i!==quizData[idx].correctIndex){score--;}
+  scoreBadge.textContent=`${score} aciertos`;
+}
+btnTip.addEventListener('click',()=>{tipEl.hidden=!tipEl.hidden;});
+btnPrev.addEventListener('click',()=>{if(idx>0){idx--;render();}});
+btnNext.addEventListener('click',()=>{if(idx<quizData.length-1){idx++;render();}});
+btnFinish.addEventListener('click',()=>{
+  let correct=0;answers.forEach((a,i)=>{if(a===quizData[i].correctIndex)correct++;});
+  const pct=Math.round((correct/quizData.length)*100);
+  resultEl.hidden=false;
+  resultEl.innerHTML=`Resultado: <strong>${correct}/${quizData.length}</strong> (${pct}%). `+
+    (pct>=60?`<span style="color:var(--ok)">¡Aprobado!</span>`:`<span style="color:var(--err)">Necesitas reforzar.</span>`)+
+    ` <button class="secondary" onclick="restart()">Reintentar</button>`;
+});
+function restart(){for(let i=0;i<answers.length;i++)answers[i]=null;idx=0;score=0;
+  scoreBadge.textContent='0 aciertos';resultEl.hidden=true;render();}
+render();
+</script>
+</body>
+</html>
